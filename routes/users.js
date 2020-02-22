@@ -13,13 +13,13 @@ router.get('/:id', (req, res, next) => {
   console.log(`Getting user with id ${req.params.id}`);
 
   // eslint-disable-next-line no-underscore-dangle
-  const user = users.find((el) => el._id === req.params.id);
+  const foundUser = users.find((user) => user._id === req.params.id);
 
-  if (!user) {
+  if (!foundUser) {
     return next({ status: 404, message: 'Нет пользователя с таким id' });
   }
 
-  return res.json(user);
+  return res.json(foundUser);
 });
 
 module.exports = router;

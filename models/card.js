@@ -3,7 +3,6 @@ const mongoose = require('mongoose');
 const cardSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: true,
     minlength: 2,
     maxlength: 30,
     validate: {
@@ -12,7 +11,7 @@ const cardSchema = new mongoose.Schema({
       },
       message: props => `${props.value} is not a valid name!`
     },
-    required: true
+    required: [true, 'Поле name обязательное']
   },
   link: {
     type: String,
@@ -22,7 +21,7 @@ const cardSchema = new mongoose.Schema({
       },
       message: props => `${props.value} is not a valid URL!`
     },
-    required: true
+    required: [true, 'Поле link обязательное']
   },
   owner: {
     type: mongoose.Schema.Types.ObjectId,

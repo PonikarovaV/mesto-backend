@@ -1,18 +1,16 @@
 const router = require('express').Router();
 
 const users = require('../data/users');
+const User = require('../models/user');
 
 router.get('/', (req, res) => {
-  // eslint-disable-next-line no-console
   console.log('Getting users list');
   res.json(users);
 });
 
-router.get('/:id', (req, res, next) => {
-  // eslint-disable-next-line no-console
+router.get('/:userId', (req, res, next) => {
   console.log(`Getting user with id ${req.params.id}`);
 
-  // eslint-disable-next-line no-underscore-dangle
   const foundUser = users.find((user) => user._id === req.params.id);
 
   if (!foundUser) {
@@ -20,6 +18,16 @@ router.get('/:id', (req, res, next) => {
   }
 
   return res.json(foundUser);
+});
+
+router.post('/', (req, res, next) => {
+  console.log('Create user');
+
+  const { name, about, avatar } = req.body;
+
+  User.create({ name, about, avatar })
+    .then(user => res.send({ data: user }))
+    .catch(() => res.status(500).send({ message: 'Произошла ошибка' }));
 });
 
 module.exports = router;

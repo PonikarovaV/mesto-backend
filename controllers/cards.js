@@ -6,7 +6,7 @@ module.exports.getCards = (req, res) => {
   Card.find({})
     .populate('user')
     .then(card => res.send({ cards: card }))
-    .catch(err => res.status(500).send({ message: err.message }));
+    .catch((err) => res.status(500).send({ message: err.message || 'С карточками творится неладное...' }));
 }
 
 module.exports.createCard = (req, res, next) => {
@@ -17,5 +17,29 @@ module.exports.createCard = (req, res, next) => {
 
   Card.create({ name, link, owner: _id })
     .then(card => res.send({ data: card }))
-    .catch(() => res.status(500).send({ message: 'С карточками творится неладное...' }));
+    .catch((err) => res.status(500).send({ message: err.message || 'С карточками творится неладное...' }));
+}
+
+module.exports.likeCard = (req, res) => {
+  console.log(`Put like to ${req.params.cardId}. User ${req.user._id}`);
+
+  Card.findByIdAndUpdate(
+    req.params.cardId,
+    { $addToSet: { likes: req.user._id } },
+    { new: true }
+  )
+    .then(card => res.send({ data: card }))
+    .catch((err) => res.status(500).send({ message: err.message || 'С карточками творится неладное...' }));
+}
+
+module.exports.dislikeCard = (req, res) => {
+  console.log(`Delete like from ${req.params.cardId}. User ${req.user._id}`);
+
+  Card.findByIdAndUpdate(
+    req.params.cardId,
+    { $pull: { likes: req.user._id } },
+    { new: true }
+  )
+    .then(card => res.send({ data: card }))
+    .catch((err) => res.status(500).send({ message: err.message || 'С карточками творится неладное...' }));
 }

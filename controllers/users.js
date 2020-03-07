@@ -4,8 +4,8 @@ module.exports.getUsers = (req, res, next) => {
   console.log(`Getting user list`);
 
   User.find({})
-  .then(directors => res.send({ data: directors }))
-  .catch(err => res.status(500).send({ message: err.message }));
+  .then(users => res.send({ data: users }))
+  .catch((err) => res.status(500).send({ message: err.message || 'С пользователем что-то не так...' }));
 }
 
 module.exports.getUser = (req, res, next) => {
@@ -13,7 +13,7 @@ module.exports.getUser = (req, res, next) => {
 
   User.findById(req.params.userId)
     .then(user => res.send({ data: user }))
-    .catch(err => res.status(500).send({ message: err.message }));
+    .catch((err) => res.status(500).send({ message: err.message || 'С пользователем что-то не так...' }));
 }
 
 module.exports.createUser = (req, res) => {
@@ -23,5 +23,5 @@ module.exports.createUser = (req, res) => {
 
   User.create({ name, about, avatar })
     .then(user => res.send({ data: user }))
-    .catch(() => res.status(500).send({ message: 'С пользователем что-то не так...' }));
+    .catch((err) => {res.status(500).send({ message: err.message || 'С пользователем что-то не так...' })});
 }

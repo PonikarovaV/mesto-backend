@@ -31,7 +31,6 @@ app.use(errorMiddleware);
 
 async function start() {
   try {
-      // await mongoose.connect('mongodb+srv://Vanda:v1a2n3d4a5@cluster0-xeqkl.mongodb.net/mestodb', {
       await mongoose.connect('mongodb://localhost:27017/mestodb', {
         useNewUrlParser: true,
         useCreateIndex: true,

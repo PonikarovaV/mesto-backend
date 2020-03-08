@@ -30,8 +30,13 @@ module.exports.updateUser = (req, res) => {
   console.log(`Update profile ${req.user._id} with name ${req.body.name} and about ${req.body.about}`);
 
   const { name, about } = req.body;
+  console.log({ name, about })
 
-  User.findByIdAndUpdate(req.user._id, { name, about }, { new: true, runValidators: true })
+  User.findByIdAndUpdate(
+    req.user._id,
+    { name, about },
+    { new: true, runValidators: true }
+  )
     .then(user => res.send({ data: user }))
     .catch((err) => {res.status(500).send({ message: err.message || 'С пользователем что-то не так...' })});
 }
@@ -39,7 +44,11 @@ module.exports.updateUser = (req, res) => {
 module.exports.updateAvatar = (req, res) => {
   console.log(`Update avatar ${req.user._id} with link ${req.body.avatar}`);
 
-  User.findByIdAndUpdate(req.user._id, { avatar: req.body.avatar }, { new: true, runValidators: true })
+  User.findByIdAndUpdate(
+    req.user._id,
+    { avatar: req.body.avatar },
+    { new: true, runValidators: true }
+  )
     .then(user => res.send({ data: user }))
     .catch((err) => {res.status(500).send({ message: err.message || 'С пользователем что-то не так...' })});
 }

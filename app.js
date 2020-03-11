@@ -31,7 +31,7 @@ app.use(errorMiddleware);
 
 async function start() {
   try {
-      await mongoose.connect('mongodb://localhost:27017/mestodb', {
+      await mongoose.connect(`mongodb://localhost:27017/mestodb`, {
         useNewUrlParser: true,
         useCreateIndex: true,
         useFindAndModify: false

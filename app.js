@@ -4,7 +4,8 @@ const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 
 const logger = require('./middlewares/logger');
-const errorMiddleware = require('./middlewares/error');
+const authorize = require('./middlewares/authorize');
+const { resource, errorMiddleware } = require('./middlewares/error');
 const users = require('./routes/users');
 const cards = require('./routes/cards');
 
@@ -16,17 +17,10 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use(logger);
 app.use(express.static(path.join(__dirname, 'public')));
-app.use((req, res, next) => {
-  req.user = {
-      _id: '5e616d18d954b4760ac82531'
-  };
-  next();
-});
+app.use(authorize);
 app.use('/users', users);
 app.use('/cards', cards);
-app.use((req, res, next) => {
-  next({ status: 404, message: 'Запрашиваемый ресурс не найден' });
-});
+app.use(resource);
 app.use(errorMiddleware);
 
 async function start() {

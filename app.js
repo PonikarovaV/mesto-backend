@@ -10,7 +10,7 @@ const users = require('./routes/users');
 const cards = require('./routes/cards');
 
 const PORT = process.env.PORT || 3000;
-const devMongoPath = 'mongodb://localhost:27017/mestodb'
+const devMongoPath = 'mongodb://localhost:27017/mestodb';
 const mongoDB = process.env.MONGODB_URI || devMongoPath;
 const app = express();
 
@@ -27,19 +27,17 @@ app.use(errorMiddleware);
 
 async function start() {
   try {
-      await mongoose.connect(mongoDB, {
-        useNewUrlParser: true,
-        useCreateIndex: true,
-        useFindAndModify: false
-      })
-      app.listen(PORT, () => {
-        console.log(`Server started on port ${PORT}`);
-      });
-  }
-  catch(err) {
-      console.log(err);
+    await mongoose.connect(mongoDB, {
+      useNewUrlParser: true,
+      useCreateIndex: true,
+      useFindAndModify: false,
+    });
+    app.listen(PORT, () => {
+      console.log(`Server started on port ${PORT}`);
+    });
+  } catch (err) {
+    console.log(err);
   }
 }
 
 start();
-

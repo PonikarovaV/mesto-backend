@@ -13,11 +13,7 @@ module.exports = {
         "ecmaVersion": 2018
     },
     "rules": {
-      // "allow": ["log", "warn", "error"],
-      "allow": ["foo_", "_bar"],
-      "allowAfterThis": true,
-      "allowAfterSuper": true,
-      "allowAfterThisConstructor": true,
-      "enforceInMethodNames": false
+      "no-console": "off",
+      "no-underscore-dangle": ["error", { "allow": ["_id"] }]
     }
 };

@@ -4,7 +4,6 @@ module.exports = {
         "commonjs": true,
         "es6": true
     },
-    // "extends": "eslint:recommended",
     "extends": "airbnb-base",
     "globals": {
         "Atomics": "readonly",
@@ -14,5 +13,7 @@ module.exports = {
         "ecmaVersion": 2018
     },
     "rules": {
+      "no-console": "off",
+      "no-underscore-dangle": ["error", { "allow": ["_id"] }]
     }
 };

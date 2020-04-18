@@ -9,10 +9,10 @@ const { createUser, login } = require('./controllers/users');
 const users = require('./routes/users');
 const cards = require('./routes/cards');
 const auth = require('./middlewares/auth');
+require('dotenv').config();
 
 const PORT = process.env.PORT || 3000;
-const devMongoPath = 'mongodb://localhost:27017/mestodb';
-const mongoDB = process.env.MONGODB_URI || devMongoPath;
+const mongoDB = process.env.MONGODB_URI;
 const app = express();
 
 app.use(bodyParser.json());

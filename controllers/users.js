@@ -1,112 +1,101 @@
-/* eslint-disable import/order */
-/* eslint-disable no-unused-vars */
-/* eslint-disable consistent-return */
+/* eslint-disable max-len */
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const User = require('../models/user');
 const validator = require('validator');
+const { key } = require('../config/config');
+const User = require('../models/user');
+const NotFoundError = require('../errors/not-found-error');
+const BadRequestError = require('../errors/bad-request-error');
 
-module.exports.login = (req, res) => {
+module.exports.login = (req, res, next) => {
   const { email, password } = req.body;
 
   return User.findUserByCredentials(email, password)
     .then((user) => {
-      const token = jwt.sign({ _id: user._id }, 'security-key', { expiresIn: '7d' });
+      const token = jwt.sign({ _id: user._id }, key, { expiresIn: '7d' });
 
       res.send({ token });
     })
-    .catch((err) => {
-      res.status(401).send({ message: err.message });
-    });
+    .catch(next);
 };
 
-module.exports.createUser = (req, res) => {
-  if (!validator.isEmail(req.body.email)) {
-    res.status(400).send({ message: 'Указан невалидный email' });
-  }
-  if (validator.isEmail(req.body.email)) {
-    bcrypt.hash(req.body.password, 10)
+module.exports.createUser = (req, res, next) => {
+  const {
+    email, password, name, about, avatar,
+  } = req.body;
+
+  if (!validator.matches(password, /[a-zA-Z0-9*]{8,15}/gi)) {
+    throw new BadRequestError('Поле password может содержать символы: *, a-z, A-Z, 0-9.');
+  } else {
+    bcrypt.hash(password, 10)
       .then((hash) => User.create({
-        email: req.body.email,
+        email,
         password: hash,
-        name: req.body.name,
-        about: req.body.about,
-        avatar: req.body.avatar,
+        name,
+        about,
+        avatar,
       }))
-      .then((user) => res.send({ data: user }))
-      .catch((err) => { res.status(500).send({ message: err.message || 'С пользователем что-то не так...' }); });
+      .then((user) => res.send({ name: user.name, about: user.about, email: user.email }))
+      .catch(next);
   }
 };
 
 module.exports.getUsers = (req, res, next) => {
   User.find({})
     .then((users) => res.send({ data: users }))
-    .catch((err) => res.status(500).send({ message: err.message || 'С пользователем что-то не так...' }));
+    .catch(next);
 };
 
 module.exports.getUser = (req, res, next) => {
   User.findById(req.params.userId)
     .then((user) => {
       if (!user) {
-        res.status(404).send({ message: `Пользователь с id ${req.params.userId} не найден` });
+        throw new NotFoundError(`Пользователь с id ${req.params.userId} не найден`);
       } else {
         res.send({ data: user });
       }
     })
-    .catch((err) => res.status(500).send({ message: err.message || 'С пользователем что-то не так...' }));
+    .catch(next);
 };
 
-module.exports.updateUser = (req, res) => {
-  const { name, about } = req.body;
+module.exports.updateUser = (req, res, next) => {
   const request = {};
 
-  if (name) {
-    request.name = name;
+  if (req.body.name) {
+    request.name = req.body.name;
   }
 
-  if (about) {
-    request.about = about;
+  if (req.body.about) {
+    request.about = req.body.about;
   }
 
-  User.findById(req.user._id)
-    .then((user) => {
-      if (!user) {
-        res.status(404).send({ message: `Пользователь с id ${req.params.userId} не найден` });
-      }
-      if (String(user._id) === String(req.user._id)) {
-        User.update(user, request, { new: true, runValidators: true })
-          .then(() => {
-            res.send({ message: `Профиль пользователя ${user.name} успешно обновлен` });
-          })
-          .catch((err) => { res.status(400).send({ message: err.message }); });
-      }
-      if (String(user._id) !== String(req.user._id)) {
-        return Promise.reject(new Error('Вы не можете менять чужой профиль'));
-      }
-    })
-    .catch((err) => { res.status(500).send({ message: err.message || 'С пользователем что-то не так...' }); });
-};
-
-module.exports.updateAvatar = (req, res) => {
-  if (!(req.body.avatar)) {
-    res.status(400).send({ message: 'Внесите данные' });
-  } else {
-    User.findById(req.user._id)
+  if (request.name !== undefined || request.about !== undefined) {
+    User.findByIdAndUpdate(req.user._id, request, { new: true, runValidators: true })
       .then((user) => {
         if (!user) {
-          res.status(404).send({ message: `Пользователь с id ${req.params.userId} не найден` });
-        }
-        if (String(user._id) === String(req.user._id)) {
-          User.update(user, { avatar: req.body.avatar }, { new: true, runValidators: true })
-            .then(() => {
-              res.send({ message: `Аватар пользователя ${user.name} успешно обновлен` });
-            })
-            .catch((err) => { res.status(400).send({ message: err.message }); });
-        }
-        if (String(user._id) !== String(req.user._id)) {
-          return Promise.reject(new Error('Вы не можете менять чужой профиль'));
+          throw new NotFoundError(`Пользователь с id ${req.user._id} не найден`);
+        } else {
+          res.send({ user });
         }
       })
-      .catch((err) => { res.status(500).send({ message: err.message || 'С пользователем что-то не так...' }); });
+      .catch(next);
+  } else {
+    throw new BadRequestError('Поля должны быть корректно заполнены');
+  }
+};
+
+module.exports.updateAvatar = (req, res, next) => {
+  if (!(req.body.avatar)) {
+    throw new BadRequestError('Поле avatar должно содержать ссылку');
+  } else {
+    User.findByIdAndUpdate(req.user._id, { avatar: req.body.avatar }, { new: true, runValidators: true })
+      .then((user) => {
+        if (!user) {
+          throw new NotFoundError(`Пользователь с id ${req.user._id} не найден`);
+        } else {
+          res.send({ message: 'Аватар пользователя успешно обновлен' });
+        }
+      })
+      .catch(next);
   }
 };

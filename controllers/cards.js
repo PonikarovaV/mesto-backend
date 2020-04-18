@@ -1,12 +1,12 @@
-/* eslint-disable no-unused-vars */
-const mongoose = require('mongoose');
 const Card = require('../models/card');
+const NotFoundError = require('../errors/not-found-error');
+const ForbiddenError = require('../errors/forbidden-error');
 
-module.exports.getCards = (req, res) => {
+module.exports.getCards = (req, res, next) => {
   Card.find({})
     .populate('user')
     .then((card) => res.send({ cards: card }))
-    .catch((err) => res.status(500).send({ message: err.message || 'С карточками творится неладное...' }));
+    .catch(next);
 };
 
 module.exports.createCard = (req, res, next) => {
@@ -15,10 +15,10 @@ module.exports.createCard = (req, res, next) => {
 
   Card.create({ name, link, owner: _id })
     .then((card) => res.send({ data: card }))
-    .catch((err) => res.status(500).send({ message: err.message || 'С карточками творится неладное...' }));
+    .catch(next);
 };
 
-module.exports.likeCard = (req, res) => {
+module.exports.likeCard = (req, res, next) => {
   Card.findByIdAndUpdate(
     req.params.cardId,
     { $addToSet: { likes: req.user._id } },
@@ -26,15 +26,15 @@ module.exports.likeCard = (req, res) => {
   )
     .then((card) => {
       if (!card) {
-        res.status(404).send({ message: `Карточка с id ${req.params.cardId} не найдена` });
+        throw new NotFoundError(`Карточка с id ${req.params.cardId} не найдена`);
       } else {
         res.send({ data: card });
       }
     })
-    .catch((err) => res.status(500).send({ message: err.message || 'С карточками творится неладное...' }));
+    .catch(next);
 };
 
-module.exports.dislikeCard = (req, res) => {
+module.exports.dislikeCard = (req, res, next) => {
   Card.findByIdAndUpdate(
     req.params.cardId,
     { $pull: { likes: req.user._id } },
@@ -42,29 +42,28 @@ module.exports.dislikeCard = (req, res) => {
   )
     .then((card) => {
       if (!card) {
-        res.status(404).send({ message: `Карточка с id ${req.params.cardId} не найдена` });
+        throw new NotFoundError(`Карточка с id ${req.params.cardId} не найдена`);
       } else {
         res.send({ data: card });
       }
     })
-    .catch((err) => res.status(500).send({ message: err.message || 'С карточками творится неладное...' }));
+    .catch(next);
 };
 
 module.exports.deleteCard = (req, res, next) => {
   Card.findById(req.params.cardId)
     .then((card) => {
       if (!card) {
-        res.status(404).send({ message: `Карточка с id ${req.params.cardId} не найдена` });
+        throw new NotFoundError(`Карточка с id ${req.params.cardId} не найдена`);
       }
-      if (String(card.owner) === String(req.user._id)) {
+      if (String(card.owner) !== String(req.user._id)) {
+        throw new ForbiddenError('Вы не можете удалить карточку');
+      } else {
         Card.deleteOne(card)
           .then(() => {
             res.send({ message: `Карточка с id ${req.params.cardId} успешно и безвозвратно удалена` });
           });
       }
-      if (String(card.owner) !== String(req.user._id)) {
-        return Promise.reject(new Error('Вы не можете удалить карточку'));
-      }
     })
-    .catch((err) => res.status(500).send({ message: err.message || 'С карточками творится неладное...' }));
+    .catch(next);
 };

@@ -1,75 +1,81 @@
 /* eslint-disable func-names */
-/* eslint-disable no-useless-escape */
-/* eslint-disable space-before-function-paren */
-/* eslint-disable object-shorthand */
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const validator = require('validator');
+
+const BadRequestError = require('../errors/bad-request-error');
 
 const userSchema = new mongoose.Schema({
   email: {
     type: String,
-    required: true,
     unique: true,
-    minlength: 5,
-    maxlength: 30,
+    validate: {
+      validator(string) {
+        return validator.isEmail(string);
+      },
+      message: () => 'Поле должно содержать email.',
+    },
+    required: [true, 'Поле email обязательное'],
   },
   password: {
     type: String,
-    required: true,
-    minlength: 8,
     select: false,
+    validate: {
+      validator(string) {
+        return validator.matches(string, /[a-zA-Z0-9*]{8,30}/gi);
+      },
+      message: () => 'Поле password может содержать символы: *, a-z, A-Z, 0-9.',
+    },
+    required: [true, 'Поле password обязательное.'],
   },
   name: {
     type: String,
-    minlength: 2,
-    maxlength: 30,
     validate: {
-      validator: function(string) {
-        return /^[a-zA-Zа-яёА-ЯЁ0-9\s]+$/.test(string);
+      validator(string) {
+        return validator.matches(string, /[a-zA-Zа-яёА-ЯЁ0-9\s]{2,30}/gi);
       },
-      message: (props) => `${props.value} is not a valid name!`,
+      message: () => 'Поле name может содержать символы: A-Z, А-Я (верхнй или нижний регистр), цифры, пробел. Максимальная длина - 30.',
     },
-    required: [true, 'Поле name обязательное'],
+    required: [true, 'Поле name обязательное.'],
   },
   about: {
     type: String,
-    minlength: 2,
-    maxlength: 30,
     validate: {
-      validator: function(string) {
-        return /^[a-zA-Zа-яёА-ЯЁ0-9\s]+$/.test(string);
+      validator(string) {
+        return validator.matches(string, /[a-zA-Zа-яёА-ЯЁ0-9\s]{2,30}/gi);
       },
-      message: (props) => `${props.value} is not a valid field!`,
+      message: () => 'Поле about может содержать символы: A-Z, А-Я (верхнй или нижний регистр), цифры, пробел. Максимальная длина - 30.',
     },
-    required: [true, 'Поле about обязательное'],
+    required: [true, 'Поле about обязательное.'],
   },
   avatar: {
     type: String,
     validate: {
-      validator: function(string) {
-        return /^(https?:\/\/)?(www.)?((([a-zA-Z0-9\.\-]+)(\.[a-z]{2,64})+)|(([0-9]{1,3}\.){3}([0-9]{1,3})))(:[0-9]{2,5})?((\/[a-zA-Z0-9\?\\#\\%\\=\\&\)\(\.\-\\_]+(\/)?)+)?(#)?$/.test(string);
+      validator(string) {
+        return validator.isURL(string);
       },
-      message: (props) => `${props.value} is not a valid URL!`,
+      message: () => 'Поле avatar должно содержать ссылку.',
     },
   },
 });
 
-userSchema.statics.findUserByCredentials = function (email, password) {
+userSchema.statics.findUserByCredentials = function (email, password, next) {
   return this.findOne({ email }).select('+password')
     .then((user) => {
       if (!user) {
-        return Promise.reject(new Error('Неправильные почта или пароль'));
+        throw new BadRequestError('Неправильные почта или пароль.');
       }
 
       return bcrypt.compare(password, user.password)
         .then((matched) => {
           if (!matched) {
-            return Promise.reject(new Error('Неправильные почта или пароль'));
+            throw new BadRequestError('Неправильные почта или пароль.');
           }
 
           return user;
         });
-    });
+    })
+    .catch(next);
 };
 
 module.exports = mongoose.model('user', userSchema);

@@ -4,8 +4,7 @@ module.exports.resource = (res, req, next) => {
 
 module.exports.errorMiddleware = (err, req, res, next) => {
   const status = err.status || 500;
-  const message = err.message || `Что-то пошло не так ${status}`;
-
-  res.status(status).json({ message });
+  const error = err.message || `Что-то пошло не так ${status}`;
+  res.status(status).json({ error });
   next();
 };

@@ -1,29 +1,24 @@
 const Card = require('../models/card');
+const NotFoundError = require('../errors/not-found-error');
+const ForbiddenError = require('../errors/forbidden-error');
 
-module.exports.getCards = (req, res) => {
-  console.log('Getting cards list');
-
+module.exports.getCards = (req, res, next) => {
   Card.find({})
     .populate('user')
     .then((card) => res.send({ cards: card }))
-    .catch((err) => res.status(500).send({ message: err.message || 'С карточками творится неладное...' }));
+    .catch(next);
 };
 
-// eslint-disable-next-line no-unused-vars
 module.exports.createCard = (req, res, next) => {
-  console.log('Create card');
-
   const { name, link } = req.body;
   const { _id } = req.user;
 
   Card.create({ name, link, owner: _id })
     .then((card) => res.send({ data: card }))
-    .catch((err) => res.status(500).send({ message: err.message || 'С карточками творится неладное...' }));
+    .catch(next);
 };
 
-module.exports.likeCard = (req, res) => {
-  console.log(`Put like to ${req.params.cardId}. User ${req.user._id}`);
-
+module.exports.likeCard = (req, res, next) => {
   Card.findByIdAndUpdate(
     req.params.cardId,
     { $addToSet: { likes: req.user._id } },
@@ -31,17 +26,15 @@ module.exports.likeCard = (req, res) => {
   )
     .then((card) => {
       if (!card) {
-        res.status(404).send({ message: `Карточка с id ${req.params.cardId} не найдена` });
+        throw new NotFoundError(`Карточка с id ${req.params.cardId} не найдена`);
       } else {
         res.send({ data: card });
       }
     })
-    .catch((err) => res.status(500).send({ message: err.message || 'С карточками творится неладное...' }));
+    .catch(next);
 };
 
-module.exports.dislikeCard = (req, res) => {
-  console.log(`Delete like from ${req.params.cardId}. User ${req.user._id}`);
-
+module.exports.dislikeCard = (req, res, next) => {
   Card.findByIdAndUpdate(
     req.params.cardId,
     { $pull: { likes: req.user._id } },
@@ -49,25 +42,28 @@ module.exports.dislikeCard = (req, res) => {
   )
     .then((card) => {
       if (!card) {
-        res.status(404).send({ message: `Карточка с id ${req.params.cardId} не найдена` });
+        throw new NotFoundError(`Карточка с id ${req.params.cardId} не найдена`);
       } else {
         res.send({ data: card });
       }
     })
-    .catch((err) => res.status(500).send({ message: err.message || 'С карточками творится неладное...' }));
+    .catch(next);
 };
 
-// eslint-disable-next-line no-unused-vars
 module.exports.deleteCard = (req, res, next) => {
-  console.log('Delete card');
-
-  Card.findByIdAndDelete(req.params.cardId)
+  Card.findById(req.params.cardId)
     .then((card) => {
       if (!card) {
-        res.status(404).send({ message: `Карточка с id ${req.params.cardId} не найдена` });
+        throw new NotFoundError(`Карточка с id ${req.params.cardId} не найдена`);
+      }
+      if (String(card.owner) !== String(req.user._id)) {
+        throw new ForbiddenError('Вы не можете удалить карточку');
       } else {
-        res.send({ data: card, message: `Карточка с id ${req.params.cardId} успешно и безвозвратно удалена` });
+        Card.deleteOne(card)
+          .then(() => {
+            res.send({ message: `Карточка с id ${req.params.cardId} успешно и безвозвратно удалена` });
+          });
       }
     })
-    .catch((err) => res.status(500).send({ message: err.message || 'С карточками творится неладное...' }));
+    .catch(next);
 };

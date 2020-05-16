@@ -1,85 +1,103 @@
+/* eslint-disable max-len */
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
+const validator = require('validator');
+
+require('dotenv').config();
+
 const User = require('../models/user');
+const NotFoundError = require('../errors/not-found-error');
+const BadRequestError = require('../errors/bad-request-error');
 
-// eslint-disable-next-line no-unused-vars
-module.exports.getUsers = (req, res, next) => {
-  console.log('Getting user list');
+module.exports.login = (req, res, next) => {
+  const { email, password } = req.body;
 
-  User.find({})
-    .then((users) => res.send({ data: users }))
-    .catch((err) => res.status(500).send({ message: err.message || 'С пользователем что-то не так...' }));
+  return User.findUserByCredentials(email, password)
+    .then((user) => {
+      const token = jwt.sign({ _id: user._id }, process.env.SECURE_KEY, { expiresIn: '7d' });
+
+      res.send({ token });
+    })
+    .catch(next);
 };
 
-// eslint-disable-next-line no-unused-vars
-module.exports.getUser = (req, res, next) => {
-  console.log(`Getting user with id ${req.params.userId}`);
+module.exports.createUser = (req, res, next) => {
+  const {
+    email, password, name, about, avatar,
+  } = req.body;
 
+  if (!validator.matches(password, /[a-zA-Z0-9*]{8,15}/gi)) {
+    throw new BadRequestError('Поле password может содержать символы: *, a-z, A-Z, 0-9.');
+  } else {
+    bcrypt.hash(password, 10)
+      .then((hash) => User.create({
+        email,
+        password: hash,
+        name,
+        about,
+        avatar,
+      }))
+      .then((user) => res.send({ name: user.name, about: user.about, email: user.email }))
+      .catch(next);
+  }
+};
+
+module.exports.getUsers = (req, res, next) => {
+  User.find({})
+    .then((users) => res.send({ data: users }))
+    .catch(next);
+};
+
+module.exports.getUser = (req, res, next) => {
   User.findById(req.params.userId)
     .then((user) => {
       if (!user) {
-        res.status(404).send({ message: `Пользователь с id ${req.params.userId} не найден` });
+        throw new NotFoundError(`Пользователь с id ${req.params.userId} не найден`);
       } else {
         res.send({ data: user });
       }
     })
-    .catch((err) => res.status(500).send({ message: err.message || 'С пользователем что-то не так...' }));
+    .catch(next);
 };
 
-module.exports.createUser = (req, res) => {
-  console.log('Create user');
-
-  const { name, about, avatar } = req.body;
-
-  User.create({ name, about, avatar })
-    .then((user) => res.send({ data: user }))
-    .catch((err) => { res.status(500).send({ message: err.message || 'С пользователем что-то не так...' }); });
-};
-
-module.exports.updateUser = (req, res) => {
-  console.log(`Update profile ${req.user._id} with name ${req.body.name} and about ${req.body.about}`);
-  const { name, about } = req.body;
+module.exports.updateUser = (req, res, next) => {
   const request = {};
 
-  if (name) {
-    request.name = name;
+  if (req.body.name) {
+    request.name = req.body.name;
   }
 
-  if (about) {
-    request.about = about;
+  if (req.body.about) {
+    request.about = req.body.about;
   }
 
-  User.findByIdAndUpdate(
-    req.user._id,
-    request,
-    { new: true, runValidators: true },
-  )
-    .then((user) => {
-      if (!user) {
-        res.status(404).send({ message: `Пользователь с id ${req.params.userId} не найден` });
-      } else {
-        res.send({ data: user });
-      }
-    })
-    .catch((err) => { res.status(500).send({ message: err.message || 'С пользователем что-то не так...' }); });
-};
-
-module.exports.updateAvatar = (req, res) => {
-  console.log(`Update avatar ${req.user._id} with link ${req.body.avatar}`);
-
-  if (!(req.body.avatar)) {
-    res.status(400).send({ message: 'Убедительно прошу внести данные' });
-  } else {
-    User.findByIdAndUpdate(
-      req.user._id,
-      { avatar: req.body.avatar },
-      { new: true, runValidators: true },
-    )
+  if (request.name !== undefined || request.about !== undefined) {
+    User.findByIdAndUpdate(req.user._id, request, { new: true, runValidators: true })
       .then((user) => {
         if (!user) {
-          res.status(404).send({ message: `Пользователь с id ${req.params.userId} не найден` });
+          throw new NotFoundError(`Пользователь с id ${req.user._id} не найден`);
         } else {
-          res.send({ data: user });
+          res.send({ user });
         }
       })
-      .catch((err) => { res.status(500).send({ message: err.message || 'С пользователем что-то не так...' }); });
+      .catch(next);
+  } else {
+    throw new BadRequestError('Поля должны быть корректно заполнены');
+  }
+};
+
+module.exports.updateAvatar = (req, res, next) => {
+  if (!(req.body.avatar)) {
+    throw new BadRequestError('Поле avatar должно содержать ссылку');
+  } else {
+    User.findByIdAndUpdate(req.user._id, { avatar: req.body.avatar }, { new: true, runValidators: true })
+      .then((user) => {
+        if (!user) {
+          throw new NotFoundError(`Пользователь с id ${req.user._id} не найден`);
+        } else {
+          res.send({ message: 'Аватар пользователя успешно обновлен' });
+        }
+      })
+      .catch(next);
   }
 };

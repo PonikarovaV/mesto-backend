@@ -1,8 +1,5 @@
-/* eslint-disable func-names */
-/* eslint-disable no-useless-escape */
-/* eslint-disable space-before-function-paren */
-/* eslint-disable object-shorthand */
 const mongoose = require('mongoose');
+const validator = require('validator');
 
 const cardSchema = new mongoose.Schema({
   name: {
@@ -10,20 +7,20 @@ const cardSchema = new mongoose.Schema({
     minlength: 2,
     maxlength: 30,
     validate: {
-      validator: function (string) {
-        return /^[а-яёА-ЯЁa-zA-Z\s]+$/.test(string);
+      validator(string) {
+        return validator.matches(string, /[a-zA-Zа-яёА-ЯЁ0-9\s]{2,30}/gi);
       },
-      message: (props) => `${props.value} is not a valid name!`,
+      message: () => 'Поле name может содержать символы: A-Z, А-Я (верхнй или нижний регистр), цифры, пробел. Максимальная длина - 30.',
     },
     required: [true, 'Поле name обязательное'],
   },
   link: {
     type: String,
     validate: {
-      validator: function (string) {
-        return /^(https?:\/\/)?(www.)?((([a-zA-Z0-9\.\-]+)(\.(com|ru|edu|uk|gov|biz|net|org))+)|(([0-9]{1,3}\.){3}([0-9]{1,3})))(:[0-9]{2,5})?((\/[a-zA-Z0-9\?\\#\\%\\=\\&\)\(\.\-\\_]+(\/)?)+)?(#)?$/.test(string);
+      validator(string) {
+        return validator.isURL(string);
       },
-      message: (props) => `${props.value} is not a valid URL!`,
+      message: () => 'Поле avatar должно содержать ссылку.',
     },
     required: [true, 'Поле link обязательное'],
   },

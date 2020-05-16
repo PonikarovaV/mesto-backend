@@ -25,6 +25,8 @@ const PORT = process.env.PORT || 3000;
 const mongoDB = process.env.MONGODB_URI;
 const app = express();
 
+console.log(process.env.MONGODB_URI);
+
 app.use(requestLogger);
 
 app.use(bodyParser.json());

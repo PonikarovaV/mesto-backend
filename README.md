@@ -2,7 +2,8 @@
 
 Backend для проекта место.
 
-[Демо](https://cardplace.tk/)
+IP: 130.193.39.75
+Домен: https://cardplace.tk/
 
 ## Стэк технологий
 

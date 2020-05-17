@@ -1,4 +1,3 @@
-const path = require('path');
 const express = require('express');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
@@ -19,10 +18,7 @@ const { createUser, login } = require('./controllers/users');
 const users = require('./routes/users');
 const cards = require('./routes/cards');
 const auth = require('./middlewares/auth');
-require('dotenv').config();
 
-const PORT = process.env.PORT || 3000;
-const mongoDB = process.env.MONGODB_URI;
 const app = express();
 
 app.use(requestLogger);
@@ -63,13 +59,13 @@ app.use(errorMiddleware);
 
 async function start() {
   try {
-    await mongoose.connect(mongoDB, {
+    await mongoose.connect(process.env.MONGODB_URI, {
       useNewUrlParser: true,
       useCreateIndex: true,
       useFindAndModify: false,
     });
-    app.listen(PORT, () => {
-      console.log(`Server started on port ${PORT}`);
+    app.listen(process.env.PORT, () => {
+      console.log(`Server started on port ${process.env.PORT}`);
     });
   } catch (err) {
     console.log(err);

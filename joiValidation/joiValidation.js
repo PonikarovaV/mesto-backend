@@ -1,7 +1,5 @@
 const { Joi } = require('celebrate');
-// const NotFoundError = require('../errors/not-found-error');
 const BadRequestError = require('../errors/bad-request-error');
-// const Unauthorized = require('../errors/unauthorized-error');
 
 module.exports.emailSigninSchema = Joi.string().required().email().error(new BadRequestError('Поле email и password обязательные и должны быть корректно заполнены'));
 

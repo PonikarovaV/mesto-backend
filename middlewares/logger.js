@@ -1,8 +1,21 @@
-const logger = (req, res, next) => {
-  const time = new Date();
+const winston = require('winston');
+const expressWinston = require('express-winston');
 
-  console.log(time, req.method, req.path);
-  next();
+const requestLogger = expressWinston.logger({
+  transports: [
+    new winston.transports.File({ filename: 'request.log' }),
+  ],
+  format: winston.format.json(),
+});
+
+const errorLogger = expressWinston.errorLogger({
+  transports: [
+    new winston.transports.File({ filename: 'errors.log' }),
+  ],
+  format: winston.format.json(),
+});
+
+module.exports = {
+  requestLogger,
+  errorLogger,
 };
-
-module.exports = logger;

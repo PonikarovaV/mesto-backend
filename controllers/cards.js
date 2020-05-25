@@ -24,13 +24,8 @@ module.exports.likeCard = (req, res, next) => {
     { $addToSet: { likes: req.user._id } },
     { new: true },
   )
-    .then((card) => {
-      if (!card) {
-        throw new NotFoundError(`Карточка с id ${req.params.cardId} не найдена`);
-      } else {
-        res.send({ data: card });
-      }
-    })
+    .orFail(() => new NotFoundError(`Карточка с id ${req.params.cardId} не найдена.`))
+    .then((card) => res.send({ data: card }))
     .catch(next);
 };
 
@@ -40,28 +35,21 @@ module.exports.dislikeCard = (req, res, next) => {
     { $pull: { likes: req.user._id } },
     { new: true },
   )
-    .then((card) => {
-      if (!card) {
-        throw new NotFoundError(`Карточка с id ${req.params.cardId} не найдена`);
-      } else {
-        res.send({ data: card });
-      }
-    })
+    .orFail(() => new NotFoundError(`Карточка с id ${req.params.cardId} не найдена.`))
+    .then((card) => res.send({ data: card }))
     .catch(next);
 };
 
 module.exports.deleteCard = (req, res, next) => {
   Card.findById(req.params.cardId)
+    .orFail(() => new NotFoundError(`Карточка с id ${req.params.cardId} не найдена.`))
     .then((card) => {
-      if (!card) {
-        throw new NotFoundError(`Карточка с id ${req.params.cardId} не найдена`);
-      }
       if (String(card.owner) !== String(req.user._id)) {
-        throw new ForbiddenError('Вы не можете удалить карточку');
+        throw new ForbiddenError('Вы не можете удалить карточку.');
       } else {
         Card.deleteOne(card)
           .then(() => {
-            res.send({ message: `Карточка с id ${req.params.cardId} успешно и безвозвратно удалена` });
+            res.send({ message: `Карточка с id ${req.params.cardId} успешно и безвозвратно удалена.` });
           });
       }
     })

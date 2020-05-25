@@ -15,7 +15,7 @@ Node.js, Express, MongoDB
 
 Склонируйте репозиторий
 ```
-https://github.com/PonikarovaV/mesto-backend.git
+git clone https://github.com/PonikarovaV/mesto-backend.git
 ```
 Установите зависимости
 ```

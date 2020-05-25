@@ -12,12 +12,16 @@ const {
   aboutSchema,
   avatarSchema,
 } = require('./joiValidation/joiValidation');
+
 const { requestLogger, errorLogger } = require('./middlewares/logger');
 const { resource, errorMiddleware } = require('./middlewares/error');
 const { createUser, login } = require('./controllers/users');
 const users = require('./routes/users');
 const cards = require('./routes/cards');
 const auth = require('./middlewares/auth');
+
+const mongoDB = process.env.MONGODB_URI || 'mongodb://localhost:27017/mestodb';
+const port = process.env.PORT || 3000;
 
 const app = express();
 
@@ -57,15 +61,16 @@ app.use(errorLogger);
 app.use(errors());
 app.use(errorMiddleware);
 
+
 async function start() {
   try {
-    await mongoose.connect(process.env.MONGODB_URI, {
+    await mongoose.connect(mongoDB, {
       useNewUrlParser: true,
       useCreateIndex: true,
       useFindAndModify: false,
     });
-    app.listen(process.env.PORT, () => {
-      console.log(`Server started on port ${process.env.PORT}`);
+    app.listen(port, () => {
+      console.log(`Server started on port ${port}`);
     });
   } catch (err) {
     console.log(err);

@@ -7,14 +7,16 @@ const User = require('../models/user');
 const NotFoundError = require('../errors/not-found-error');
 const BadRequestError = require('../errors/bad-request-error');
 
+const key = process.env.JWT_SECRET || 'some-key';
+
 module.exports.login = (req, res, next) => {
   const { email, password } = req.body;
 
-  return User.findUserByCredentials(email, password)
+  User.findUserByCredentials(email, password)
     .then((user) => {
-      const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+      const token = jwt.sign({ _id: user._id }, key, { expiresIn: '7d' });
 
-      res.send({ token });
+      return res.send({ token });
     })
     .catch(next);
 };
@@ -25,19 +27,19 @@ module.exports.createUser = (req, res, next) => {
   } = req.body;
 
   if (!validator.matches(password, /[a-zA-Z0-9*]{8,15}/gi)) {
-    throw new BadRequestError('Поле password может содержать символы: *, a-z, A-Z, 0-9.');
-  } else {
-    bcrypt.hash(password, 10)
-      .then((hash) => User.create({
-        email,
-        password: hash,
-        name,
-        about,
-        avatar,
-      }))
-      .then((user) => res.send({ name: user.name, about: user.about, email: user.email }))
-      .catch(next);
+    next(new BadRequestError('Поле password может содержать символы: *, a-z, A-Z, 0-9.'));
   }
+
+  bcrypt.hash(password, 10)
+    .then((hash) => User.create({
+      email,
+      password: hash,
+      name,
+      about,
+      avatar,
+    }))
+    .then((user) => res.send({ name: user.name, about: user.about, email: user.email }))
+    .catch(next);
 };
 
 module.exports.getUsers = (req, res, next) => {
@@ -48,54 +50,53 @@ module.exports.getUsers = (req, res, next) => {
 
 module.exports.getUser = (req, res, next) => {
   User.findById(req.params.userId)
-    .then((user) => {
-      if (!user) {
-        throw new NotFoundError(`Пользователь с id ${req.params.userId} не найден`);
-      } else {
-        res.send({ data: user });
-      }
-    })
+    .orFail(() => new NotFoundError(`Пользователь с id ${req.params.userId} не найден.`))
+    .then((user) => res.send({ data: user }))
     .catch(next);
 };
 
 module.exports.updateUser = (req, res, next) => {
   const request = {};
 
-  if (req.body.name) {
+  const isFieldValid = (fieldValue) => validator.matches(fieldValue, /[a-zA-Zа-яёА-ЯЁ0-9\s]{2,30}/gi);
+
+  const errorMessage = (fieldName) => `Поле ${fieldName} может содержать символы: A-Z, А-Я (верхнй или нижний регистр), цифры, пробел. Максимальная длина - 30.`;
+
+  if (!req.body.name && !req.body.about) {
+    next(new BadRequestError('Неверно передан запрос. Должно быть передано значение name или about.'));
+  }
+
+  if (typeof req.body.name !== 'undefined') {
+    if (!isFieldValid(req.body.name)) {
+      next(new BadRequestError(errorMessage('name')));
+    }
     request.name = req.body.name;
   }
 
-  if (req.body.about) {
+  if (typeof req.body.about !== 'undefined') {
+    if (!isFieldValid(req.body.about)) {
+      next(new BadRequestError(errorMessage('about')));
+    }
     request.about = req.body.about;
   }
 
-  if (request.name !== undefined || request.about !== undefined) {
-    User.findByIdAndUpdate(req.user._id, request, { new: true, runValidators: true })
-      .then((user) => {
-        if (!user) {
-          throw new NotFoundError(`Пользователь с id ${req.user._id} не найден`);
-        } else {
-          res.send({ user });
-        }
-      })
-      .catch(next);
-  } else {
-    throw new BadRequestError('Поля должны быть корректно заполнены');
-  }
+  User.findByIdAndUpdate(req.user._id, request, { new: true, runValidators: true })
+    .orFail(() => new NotFoundError(`Пользователь с id ${req.user._id} не найден.`))
+    .then((user) => res.send({ user }))
+    .catch(next);
 };
 
 module.exports.updateAvatar = (req, res, next) => {
-  if (!(req.body.avatar)) {
-    throw new BadRequestError('Поле avatar должно содержать ссылку');
-  } else {
-    User.findByIdAndUpdate(req.user._id, { avatar: req.body.avatar }, { new: true, runValidators: true })
-      .then((user) => {
-        if (!user) {
-          throw new NotFoundError(`Пользователь с id ${req.user._id} не найден`);
-        } else {
-          res.send({ message: 'Аватар пользователя успешно обновлен' });
-        }
-      })
-      .catch(next);
+  if (!req.body.avatar) {
+    next(new BadRequestError('Неверно передан запрос. Должно быть передано зачение avatar.'));
   }
+
+  if (!validator.isURL(req.body.avatar)) {
+    next(new BadRequestError('Поле avatar должно содержать ссылку.'));
+  }
+
+  User.findByIdAndUpdate(req.user._id, { avatar: req.body.avatar }, { new: true, runValidators: true })
+    .orFail(() => new BadRequestError(`Пользователь с id ${req.user._id} не найден`))
+    .then((user) => res.send({ user }))
+    .catch(next);
 };

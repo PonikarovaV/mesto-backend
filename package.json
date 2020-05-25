@@ -5,7 +5,7 @@
   "main": "app.js",
   "scripts": {
     "start": "node -r dotenv/config app",
-    "dev": "nodemon -r dotenv/config app"
+    "dev": "nodemon app"
   },
   "author": "Vanda Ponikarova",
   "license": "ISC",
@@ -25,7 +25,7 @@
     "express": "^4.17.1",
     "express-winston": "^4.0.3",
     "jsonwebtoken": "^8.5.1",
-    "mongoose": "^5.9.3",
+    "mongoose": "^5.9.14",
     "mongoose-beautiful-unique-validation": "^7.1.1",
     "validator": "^13.0.0",
     "winston": "^3.2.1"
